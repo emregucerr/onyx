@@ -381,15 +381,38 @@ export function ChatPage({
     existingChatSessionId !== null
   );
 
-  // const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // useEffect(() => {
-  //   Prism.highlightAll();
-  //   setIsReady(true);
-  // }, []);
+  useEffect(() => {
+    Prism.highlightAll();
+    setIsReady(true);
+  }, []);
 
   // this is triggered every time the user switches which chat
   // session they are using
+  const [chromSentUrls, setchromSentUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      // If you have a specific origin, check event.origin === "https://my-extension-domain.com"
+      if (event.data?.type === "PAGE_URL") {
+        // The extension is telling us the new URL
+        const newUrl = event.data.url;
+        console.log("Got a URL from the extension side panel:", newUrl);
+        setchromSentUrls((prev) => [...prev, newUrl]);
+
+        // Use or store this URL as needed in your ChatPage
+        // e.g., set some local state or call a helper to do something with it
+        // setchromSentUrls(newUrl);
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, []);
   useEffect(() => {
     const priorChatSessionId = chatSessionIdRef.current;
     const loadedSessionId = loadedIdSessionRef.current;
@@ -1845,7 +1868,7 @@ export function ChatPage({
       if (!slackChatId) return;
 
       // Set isReady to false before starting retrieval to display loading text
-      // setIsReady(false);
+      setIsReady(false);
 
       try {
         const response = await fetch("/api/chat/seed-chat-session-from-slack", {
@@ -2025,7 +2048,11 @@ export function ChatPage({
 
       {retrievalEnabled && documentSidebarToggled && settings?.isMobile && (
         <div className="md:hidden">
-          <Modal noPadding noScroll>
+          <Modal
+            onOutsideClick={() => setDocumentSidebarToggled(false)}
+            noPadding
+            noScroll
+          >
             <ChatFilters
               setPresentingDocument={setPresentingDocument}
               modal={true}
@@ -2348,7 +2375,7 @@ export function ChatPage({
 
                           <div
                             className={
-                              "-ml-4 w-full mx-auto " +
+                              "desktop:-ml-4 w-full mx-auto " +
                               "absolute mobile:top-0 desktop:top-12 left-0 " +
                               (settings?.enterpriseSettings
                                 ?.two_lines_for_chat_header
@@ -2759,6 +2786,14 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              chromSentUrls={chromSentUrls}
+                              removeChromeSentUrls={(chromSentUrl: string) => {
+                                setchromSentUrls(
+                                  chromSentUrls.filter(
+                                    (url) => url !== chromSentUrl
+                                  )
+                                );
+                              }}
                               removeDocs={() => {
                                 clearSelectedDocuments();
                               }}

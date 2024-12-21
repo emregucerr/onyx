@@ -13,7 +13,11 @@ const cspHeader = `
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-ancestors 'none';
+    ${
+      process.env.NEXT_PUBLIC_ENABLE_CHROME_EXTENSION
+        ? "frame-ancestors 'self' chrome-extension://iclfmmonpknonmfkggbjnaidfkfenjoh;"
+        : "frame-ancestors 'none';"
+    }
     ${process.env.NEXT_PUBLIC_CLOUD_ENABLED === "true" ? "upgrade-insecure-requests;" : ""}
 `;
 
@@ -30,12 +34,7 @@ const nextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: cspHeader
-              .replace(/\n/g, "")
-              .replace(
-                "frame-ancestors 'none';",
-                "frame-ancestors 'self' chrome-extension://iclfmmonpknonmfkggbjnaidfkfenjoh;"
-              ),
+            value: cspHeader.replace(/\n/g, ""),
           },
           {
             key: "Strict-Transport-Security",
