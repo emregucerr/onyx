@@ -17,17 +17,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { SimplifiedChatInputBar } from "../chat/input/SimplifiedChatInputBar";
-import { Hamburger } from "@phosphor-icons/react";
 import { Menu } from "lucide-react";
-import Link from "next/link";
-import {
-  darkImages,
-  lightImages,
-  Shortcut,
-  StoredBackgroundColors,
-} from "./interfaces";
+import { darkImages, lightImages, Shortcut } from "./interfaces";
 import {
   DEFAULT_DARK_BACKGROUND_IMAGE,
   DEFAULT_LIGHT_BACKGROUND_IMAGE,
@@ -43,8 +37,12 @@ import {
 } from "./ShortCuts";
 import { Modal } from "@/components/Modal";
 import Title from "@/components/ui/title";
-import { userAgent } from "next/server";
 import { useNightTime } from "./dateUtils";
+import { useFilters } from "@/lib/hooks";
+import { uploadFilesForChat } from "../chat/lib";
+import { ChatFileType, FileDescriptor } from "../chat/interfaces";
+import { useChatContext } from "@/components/context/ChatContext";
+import Dropzone from "react-dropzone";
 
 const SidebarSwitch = ({
   checked,
@@ -112,7 +110,6 @@ export default function NRFPageNewDesign() {
   // Settings sidebar open/close go
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
-  const [showBookmarksBar, setShowBookmarksBar] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [newTabPageView, setNewTabPageView] = useState(
     localStorage.getItem("newTabPageView") || "simple"
@@ -126,14 +123,24 @@ export default function NRFPageNewDesign() {
   });
 
   const toggleTheme = (theme: string) => {
+    let mode = null;
+    if (theme === "sync") {
+      mode = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    } else {
+      mode = theme;
+    }
+
     setTheme(theme);
-    localStorage.setItem("onyxTheme", theme);
-    if (theme === "light") {
+    localStorage.setItem("onyxTheme", mode);
+    if (mode === "light") {
       setBackgroundUrl(lightImages[0]);
     } else {
       setBackgroundUrl(darkImages[0]);
     }
   };
+  const filterManager = useFilters();
 
   const { isNight } = useNightTime();
   const { user } = useUser();
@@ -185,14 +192,25 @@ export default function NRFPageNewDesign() {
     messageOverride?: string;
   } = {}) => {
     const userMessage = messageOverride || message;
-    console.log("User message:", userMessage);
+
     setMessage("");
+    let filterString = filterManager?.getFilterString();
+
+    if (currentMessageFiles.length > 0) {
+      filterString +=
+        "&files=" + encodeURIComponent(JSON.stringify(currentMessageFiles));
+    }
+
     if (window.top) {
       window.top.location.href =
-        "/chat?send-on-load=true&user-prompt=" + userMessage;
+        "/chat?send-on-load=true&user-prompt=" +
+        encodeURIComponent(userMessage) +
+        filterString;
     } else {
       window.location.href =
-        "/chat?send-on-load=true&user-prompt=" + userMessage;
+        "/chat?send-on-load=true&user-prompt=" +
+        encodeURIComponent(userMessage) +
+        filterString;
     }
 
     setPopup({
@@ -200,7 +218,7 @@ export default function NRFPageNewDesign() {
       type: "success",
     });
   };
-
+  const { ccPairs, tags, documentSets, llmProviders } = useChatContext();
   // Toggle sidebar
   const toggleSettings = () => {
     setSettingsOpen((prev) => !prev);
@@ -213,6 +231,48 @@ export default function NRFPageNewDesign() {
     } else {
       setUseOnyxAsNewTab(true);
     }
+  };
+
+  const availableSources = ccPairs.map((ccPair) => ccPair.source);
+
+  const [currentMessageFiles, setCurrentMessageFiles] = useState<
+    FileDescriptor[]
+  >([]);
+
+  const handleImageUpload = async (acceptedFiles: File[]) => {
+    console.log("acceptedFiles", acceptedFiles);
+
+    const tempFileDescriptors = acceptedFiles.map((file) => ({
+      id: uuidv4(),
+      type: file.type.startsWith("image/")
+        ? ChatFileType.IMAGE
+        : ChatFileType.DOCUMENT,
+      isUploading: true,
+    }));
+
+    // only show loading spinner for reasonably large files
+    const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > 50 * 1024) {
+      setCurrentMessageFiles((prev) => [...prev, ...tempFileDescriptors]);
+    }
+
+    const removeTempFiles = (prev: FileDescriptor[]) => {
+      return prev.filter(
+        (file) => !tempFileDescriptors.some((newFile) => newFile.id === file.id)
+      );
+    };
+
+    await uploadFilesForChat(acceptedFiles).then(([files, error]) => {
+      if (error) {
+        setCurrentMessageFiles((prev) => removeTempFiles(prev));
+        setPopup({
+          type: "error",
+          message: error,
+        });
+      } else {
+        setCurrentMessageFiles((prev) => [...removeTempFiles(prev), ...files]);
+      }
+    });
   };
 
   // Confirm turning off Onyx
@@ -233,7 +293,8 @@ export default function NRFPageNewDesign() {
         overflow: "hidden",
       }}
     >
-      {!user && (
+      {" "}
+      {!user ? (
         <Modal className="max-w-md mx-auto">
           <>
             <Title className="text-xl font-bold mb-2 text-left text-center text-neutral-800 dark:text-white">
@@ -257,8 +318,33 @@ export default function NRFPageNewDesign() {
             </Button>
           </>
         </Modal>
+      ) : llmProviders.length == 0 ? (
+        <Modal className="max-w-md mx-auto">
+          <>
+            <Title className="text-xl font-bold mb-2 text-center text-neutral-800 dark:text-white">
+              No LLM Providers Found
+            </Title>
+            <p className="text-neutral-600 dark:text-neutral-300 text-sm text-center">
+              We couldn't locate any LLM providers. Please add or configure at
+              least one provider in the admin page to enable chat features.
+            </p>
+            <Button
+              onClick={() => {
+                if (window.top) {
+                  window.top.location.href = "/admin?next=/chat?newTab=true";
+                } else {
+                  window.location.href = "/admin?next=/chat?newTab=true";
+                }
+              }}
+              className="mt-4 w-full bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg text-center transition-all duration-300 ease-in-out shadow-lg hover:shadow-xl focus:outline-none"
+            >
+              Go to Admin Panel
+            </Button>
+          </>
+        </Modal>
+      ) : (
+        <></>
       )}
-      {/* Top bar with settings icon */}
       <div
         style={{
           position: "absolute",
@@ -282,64 +368,57 @@ export default function NRFPageNewDesign() {
           <Menu size={12} className="text-neutral-900" />
         </button>
       </div>
-
       {showMaxShortcutsModal && (
         <MaxShortcutsReachedModal
           onClose={() => setShowMaxShortcutsModal(false)}
         />
       )}
-      {/* Simplified center section */}
-      <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-[90%]  lg:max-w-3xl">
-        <h1
-          className={`pl-2 text-xl text-left w-full mb-4 ${
-            theme === "light" ? "text-neutral-800" : "text-white"
-          }`}
-        >
-          {isNight ? "End your day with Onyx" : "Start your day with Onyx"}
-        </h1>
+      <Dropzone onDrop={handleImageUpload} noClick>
+        {({ getRootProps }) => (
+          <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-[90%]  lg:max-w-3xl">
+            <h1
+              className={`pl-2 text-xl text-left w-full mb-4 ${
+                theme === "light" ? "text-neutral-800" : "text-white"
+              }`}
+            >
+              {isNight ? "End your day with Onyx" : "Start your day with Onyx"}
+            </h1>
 
-        <SimplifiedChatInputBar
-          removeFilters={() => {}}
-          removeDocs={() => {}}
-          openModelSettings={() => {}}
-          showConfigureAPIKey={() => {}}
-          chatState="input"
-          stopGenerating={() => {}}
-          onSubmit={onSubmit}
-          selectedAssistant={assistants[0]}
-          setSelectedAssistant={() => {}}
-          setAlternativeAssistant={() => {}}
-          alternativeAssistant={null}
-          selectedDocuments={[]}
-          showDocs={() => {}}
-          handleFileUpload={() => {}}
-          message={message}
-          setMessage={setMessage}
-          llmOverrideManager={null as any}
-          files={[]}
-          setFiles={() => {}}
-          textAreaRef={textAreaRef}
-          chatSessionId="onyx-new-design"
-        />
+            <SimplifiedChatInputBar
+              onSubmit={onSubmit}
+              handleFileUpload={handleImageUpload}
+              message={message}
+              setMessage={setMessage}
+              files={currentMessageFiles}
+              setFiles={setCurrentMessageFiles}
+              filterManager={filterManager}
+              textAreaRef={textAreaRef}
+              existingSources={availableSources}
+              availableDocumentSets={documentSets}
+              availableTags={tags}
+            />
 
-        {showShortcuts && (
-          <div className=" mx-auto flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
-            {shortCuts.map((shortCut, index) => (
-              <ShortCut
-                key={index}
-                theme={theme}
-                onEdit={() => {
-                  setEditingShortcut(shortCut);
-                  setShowShortCutModal(true);
-                }}
-                shortCut={shortCut}
-              />
-            ))}
-            <AddShortCut openShortCutModal={() => setShowShortCutModal(true)} />
+            {showShortcuts && (
+              <div className=" mx-auto flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
+                {shortCuts.map((shortCut, index) => (
+                  <ShortCut
+                    key={index}
+                    theme={theme}
+                    onEdit={() => {
+                      setEditingShortcut(shortCut);
+                      setShowShortCutModal(true);
+                    }}
+                    shortCut={shortCut}
+                  />
+                ))}
+                <AddShortCut
+                  openShortCutModal={() => setShowShortCutModal(true)}
+                />
+              </div>
+            )}
           </div>
         )}
-      </div>
-
+      </Dropzone>
       {showShortCutModal && (
         <NewShortCutModal
           theme={theme}
@@ -359,7 +438,6 @@ export default function NRFPageNewDesign() {
           editingShortcut={editingShortcut}
         />
       )}
-
       {/* Bottom-right container for the "Use Onyx as new tab" toggle */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center bg-white/80 backdrop-blur-sm p-2 rounded-lg">
         <label
@@ -374,7 +452,6 @@ export default function NRFPageNewDesign() {
           onCheckedChange={(val) => handleUseOnyxToggle(val)}
         />
       </div>
-
       {/* Improved slide-in settings sidebar */}
       <div
         className="fixed top-0 right-0 w-[360px] h-full bg-[#202124] text-gray-300 overflow-y-auto z-20 transition-transform duration-300 ease-in-out transform"
@@ -403,38 +480,13 @@ export default function NRFPageNewDesign() {
             onCheckedChange={handleUseOnyxToggle}
             label="Use Onyx as new tab page"
           />
-          <SidebarSwitch
-            checked={showBookmarksBar}
-            onCheckedChange={setShowBookmarksBar}
-            label="Show bookmarks bar"
-          />
+
           <SidebarSwitch
             checked={showShortcuts}
             onCheckedChange={setShowShortcuts}
-            label="Show shortcuts"
+            label="Show bookmarks"
           />
 
-          <h3 className="text-sm font-semibold mt-6 mb-2">New Tab Page View</h3>
-          <RadioGroup
-            value={newTabPageView}
-            onValueChange={setNewTabPageView}
-            className="space-y-2"
-          >
-            <RadioOption
-              value="simple"
-              label="Simple"
-              description="Minimal and focused."
-              groupValue={newTabPageView}
-              onChange={setNewTabPageView}
-            />
-            <RadioOption
-              value="informational"
-              label="Informational"
-              description="Show widgets like calendar, mentions, and more."
-              groupValue={newTabPageView}
-              onChange={setNewTabPageView}
-            />
-          </RadioGroup>
           <h3 className="text-sm font-semibold mt-6 mb-2">Theme</h3>
           <RadioGroup
             value={theme}
@@ -489,7 +541,6 @@ export default function NRFPageNewDesign() {
           </div>
         </div>
       </div>
-
       {/* Modal for confirming turn off */}
       <Dialog open={showTurnOffModal} onOpenChange={setShowTurnOffModal}>
         <DialogContent className="w-fit max-w-[95%]">
@@ -514,7 +565,6 @@ export default function NRFPageNewDesign() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* If you have or need an API Key modal */}
       {false && (
         <ApiKeyModal
@@ -524,7 +574,6 @@ export default function NRFPageNewDesign() {
           setPopup={setPopup}
         />
       )}
-
       {popup}
     </div>
   );

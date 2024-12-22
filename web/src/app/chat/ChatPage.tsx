@@ -75,6 +75,7 @@ import {
   StreamStopInfo,
   StreamStopReason,
 } from "@/lib/search/interfaces";
+import { Filters } from "@/lib/search/interfaces";
 import { buildFilters } from "@/lib/search/utils";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import Dropzone from "react-dropzone";
@@ -205,6 +206,24 @@ export function ChatPage({
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.delete(SEARCH_PARAM_NAMES.SEND_ON_LOAD);
 
+      filterManager.buildFiltersFromQueryString(
+        newSearchParams.toString(),
+        availableSources,
+        documentSets.map((ds) => ds.name),
+        tags
+      );
+      const fileDescriptorString = searchParams.get("files");
+      let overrideFileDescriptors: FileDescriptor[] = [];
+      if (fileDescriptorString) {
+        try {
+          overrideFileDescriptors = JSON.parse(
+            decodeURIComponent(fileDescriptorString)
+          );
+        } catch (error) {
+          console.error("Error parsing file descriptors:", error);
+        }
+      }
+
       // Update the URL without the send-on-load parameter
       router.replace(`?${newSearchParams.toString()}`, { scroll: false });
 
@@ -213,7 +232,7 @@ export function ChatPage({
 
       // If there's a message, submit it
       if (message) {
-        onSubmit({ messageOverride: message });
+        onSubmit({ messageOverride: message, overrideFileDescriptors });
       }
     }
   }, [sendOnLoad, searchParams, router]);
@@ -301,14 +320,6 @@ export function ChatPage({
   const noAssistants = liveAssistant == null || liveAssistant == undefined;
 
   const availableSources = ccPairs.map((ccPair) => ccPair.source);
-  const [finalAvailableSources, finalAvailableDocumentSets] =
-    computeAvailableFilters({
-      selectedPersona: availableAssistants.find(
-        (assistant) => assistant.id === liveAssistant?.id
-      ),
-      availableSources: availableSources,
-      availableDocumentSets: documentSets,
-    });
 
   // always set the model override for the chat session, when an assistant, llm provider, or user preference exists
   useEffect(() => {
@@ -1094,6 +1105,7 @@ export function ChatPage({
     alternativeAssistantOverride = null,
     modelOverRide,
     regenerationRequest,
+    overrideFileDescriptors,
   }: {
     messageIdToResend?: number;
     messageOverride?: string;
@@ -1103,6 +1115,7 @@ export function ChatPage({
     alternativeAssistantOverride?: Persona | null;
     modelOverRide?: LlmOverride;
     regenerationRequest?: RegenerationRequest | null;
+    overrideFileDescriptors?: FileDescriptor[];
   } = {}) => {
     let frozenSessionId = currentSessionId();
     updateCanContinue(false, frozenSessionId);
@@ -1244,7 +1257,7 @@ export function ChatPage({
         signal: controller.signal, // Add this line
         message: currMessage,
         alternateAssistantId: currentAssistantId,
-        fileDescriptors: currentMessageFiles,
+        fileDescriptors: overrideFileDescriptors || currentMessageFiles,
         parentMessageId:
           regenerationRequest?.parentMessage.messageId ||
           lastSuccessfulMessageId,
