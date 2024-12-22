@@ -58,9 +58,8 @@ export const ShortCut = ({
         onClick={() => window.open(shortCut.url, "_blank")}
         className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
       >
-        {/* <img src={websiteIconUrl} className="w-8 h-8" alt={shortCut.name} /> */}
         <h1
-          className={`text-white font-semibold text-sm truncate px-2 ${
+          className={`text-white w-full text-center  font-semibold text-sm truncate px-2 ${
             theme === "light" ? "text-black" : "text-white"
           }`}
         >

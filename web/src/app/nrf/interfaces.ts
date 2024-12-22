@@ -16,7 +16,7 @@ export enum LightBackgroundColors {
 
 export enum DarkBackgroundColors {
   Red = "#8E2323",
-  Blue = "#1A5F7A",
+  Blue = "#0b1e54",
   Green = "#2D6E4E",
   Yellow = "#B8860B",
   Purple = "#5B3256",
