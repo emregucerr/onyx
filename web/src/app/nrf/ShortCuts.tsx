@@ -15,7 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shortcut, StoredBackgroundColors } from "./interfaces";
+import {
+  LightBackgroundColors,
+  DarkBackgroundColors,
+  Shortcut,
+  StoredBackgroundColors,
+} from "./interfaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PencilIcon, PlusIcon } from "lucide-react";
@@ -23,16 +28,21 @@ import { PencilIcon, PlusIcon } from "lucide-react";
 export const ShortCut = ({
   shortCut,
   onEdit,
+  theme,
 }: {
   shortCut: Shortcut;
   onEdit: (shortcut: Shortcut) => void;
+  theme: string;
 }) => {
   //   const websiteIconUrl = new URL(shortCut.url).origin + "/favicon.ico";
   return (
     <div
-      className="w-24 h-24 rounded-xl shadow-lg relative group transition-all duration-300 ease-in-out hover:scale-105"
+      className="w-24 h-24 flex-none rounded-xl shadow-lg relative group transition-all duration-300 ease-in-out hover:scale-105"
       style={{
-        backgroundColor: shortCut.backgroundColor,
+        backgroundColor:
+          theme === "light"
+            ? LightBackgroundColors[shortCut.backgroundColor]
+            : DarkBackgroundColors[shortCut.backgroundColor],
       }}
     >
       <button
@@ -49,7 +59,11 @@ export const ShortCut = ({
         className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
       >
         {/* <img src={websiteIconUrl} className="w-8 h-8" alt={shortCut.name} /> */}
-        <h1 className="text-white font-semibold text-sm truncate px-2">
+        <h1
+          className={`text-white font-semibold text-sm truncate px-2 ${
+            theme === "light" ? "text-black" : "text-white"
+          }`}
+        >
           {shortCut.name}
         </h1>
       </div>
@@ -65,7 +79,7 @@ export const AddShortCut = ({
   return (
     <button
       onClick={openShortCutModal}
-      className="w-24 h-24 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 ease-in-out flex flex-col items-center justify-center"
+      className="w-24 h-24 flex-none rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 ease-in-out flex flex-col items-center justify-center"
     >
       <PlusIcon className="w-8 h-8 text-white mb-2" />
       <h1 className="text-white text-xs font-medium">New Bookmark</h1>
@@ -78,9 +92,13 @@ export const NewShortCutModal = ({
   onClose,
   onAdd,
   editingShortcut,
+  onDelete,
+  theme,
 }: {
+  theme: string;
   isOpen: boolean;
   onClose: () => void;
+  onDelete: (shortcut: Shortcut) => void;
   onAdd: (shortcut: Shortcut) => void;
   editingShortcut?: Shortcut | null;
 }) => {
@@ -163,17 +181,22 @@ export const NewShortCutModal = ({
                     <SelectValue placeholder="Select a color" />
                   </div>
                 </SelectTrigger>
-                <SelectContent className="bg-neutral-800 border-neutral-700">
+                <SelectContent className="bg-neutral-900  border-neutral-700">
                   {Object.values(StoredBackgroundColors).map((color) => (
                     <SelectItem
                       key={color}
                       value={color}
-                      className="text-white"
+                      className="text-white hover:bg-neutral-800 cursor-pointer"
                     >
                       <div className="flex items-center">
                         <div
                           className="w-4 h-4 rounded-full mr-2"
-                          style={{ backgroundColor: color }}
+                          style={{
+                            backgroundColor:
+                              theme === "light"
+                                ? LightBackgroundColors[color]
+                                : DarkBackgroundColors[color],
+                          }}
                         ></div>
                         {color}
                       </div>
@@ -190,8 +213,48 @@ export const NewShortCutModal = ({
             >
               {editingShortcut ? "Save Changes" : "Add Shortcut"}
             </Button>
+            {editingShortcut && (
+              <Button
+                variant="destructive"
+                onClick={() => onDelete(editingShortcut)}
+              >
+                Delete
+              </Button>
+            )}
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export const MaxShortcutsReachedModal = ({
+  onClose,
+}: {
+  onClose: () => void;
+}) => {
+  return (
+    <Dialog onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px] bg-neutral-900 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-center">
+            Maximum Shortcuts Reached
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-center text-neutral-300">
+            You've reached the maximum limit of 8 shortcuts. To add a new
+            shortcut, please remove an existing one.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={onClose}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Got it
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

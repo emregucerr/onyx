@@ -35,7 +35,12 @@ import {
   SHORTCUTS_KEY,
   USE_ONYX_AS_NEW_TAB_KEY,
 } from "./interfaces";
-import { AddShortCut, NewShortCutModal, ShortCut } from "./ShortCuts";
+import {
+  AddShortCut,
+  MaxShortcutsReachedModal,
+  NewShortCutModal,
+  ShortCut,
+} from "./ShortCuts";
 import { Modal } from "@/components/Modal";
 import Title from "@/components/ui/title";
 import { userAgent } from "next/server";
@@ -144,10 +149,6 @@ export default function NRFPageNewDesign() {
   const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
   const [inputValue, setInputValue] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
-
   // Saved background in localStorage
   const [backgroundUrl, setBackgroundUrl] = useState<string>(() => {
     return (
@@ -160,9 +161,15 @@ export default function NRFPageNewDesign() {
     );
   });
 
-  useEffect(() => {
-    localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortCuts));
-  }, [shortCuts]);
+  const updateBackgroundUrl = (url: string) => {
+    setBackgroundUrl(url);
+    localStorage.setItem("backgroundUrl", url);
+  };
+
+  const updateShortcuts = (shortcuts: Shortcut[]) => {
+    setShortCuts(shortcuts);
+    localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
+  };
 
   useEffect(() => {
     localStorage.setItem(NEW_TAB_PAGE_VIEW_KEY, newTabPageView);
@@ -216,6 +223,7 @@ export default function NRFPageNewDesign() {
 
   const [showShortCutModal, setShowShortCutModal] = useState(false);
 
+  const [showMaxShortcutsModal, setShowMaxShortcutsModal] = useState(false);
   return (
     <div
       className="relative w-full h-full flex flex-col"
@@ -275,6 +283,11 @@ export default function NRFPageNewDesign() {
         </button>
       </div>
 
+      {showMaxShortcutsModal && (
+        <MaxShortcutsReachedModal
+          onClose={() => setShowMaxShortcutsModal(false)}
+        />
+      )}
       {/* Simplified center section */}
       <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-[90%]  lg:max-w-3xl">
         <h1
@@ -310,10 +323,11 @@ export default function NRFPageNewDesign() {
         />
 
         {showShortcuts && (
-          <div className=" flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
+          <div className=" mx-auto flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
             {shortCuts.map((shortCut, index) => (
               <ShortCut
                 key={index}
+                theme={theme}
                 onEdit={() => {
                   setEditingShortcut(shortCut);
                   setShowShortCutModal(true);
@@ -328,11 +342,19 @@ export default function NRFPageNewDesign() {
 
       {showShortCutModal && (
         <NewShortCutModal
+          theme={theme}
+          onDelete={(shortcut) => {
+            updateShortcuts(shortCuts.filter((s) => s.name !== shortcut.name));
+          }}
           isOpen={showShortCutModal}
           onClose={() => setShowShortCutModal(false)}
           onAdd={(shortCut) => {
-            setShortCuts([...shortCuts, shortCut]);
-            setShowShortCutModal(false);
+            if (shortCuts.length >= 8) {
+              setShowMaxShortcutsModal(true);
+            } else {
+              updateShortcuts([...shortCuts, shortCut]);
+              setShowShortCutModal(false);
+            }
           }}
           editingShortcut={editingShortcut}
         />
@@ -416,7 +438,7 @@ export default function NRFPageNewDesign() {
           <h3 className="text-sm font-semibold mt-6 mb-2">Theme</h3>
           <RadioGroup
             value={theme}
-            onValueChange={setTheme}
+            onValueChange={toggleTheme}
             className="space-y-2"
           >
             <RadioOption
@@ -424,21 +446,21 @@ export default function NRFPageNewDesign() {
               label="Light theme"
               description="Light theme"
               groupValue={theme}
-              onChange={setTheme}
+              onChange={toggleTheme}
             />
             <RadioOption
               value="dark"
               label="Dark theme"
               description="Dark theme"
               groupValue={theme}
-              onChange={setTheme}
+              onChange={toggleTheme}
             />
             <RadioOption
               value="sync"
               label="Sync with device"
               description="Sync with device"
               groupValue={theme}
-              onChange={setTheme}
+              onChange={toggleTheme}
             />
           </RadioGroup>
 

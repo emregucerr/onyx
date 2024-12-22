@@ -5,23 +5,23 @@ export interface Shortcut {
 }
 
 export enum LightBackgroundColors {
-  RED = "#FFB3BA",
-  BLUE = "#BAEEFF",
-  GREEN = "#BAFFC9",
-  YELLOW = "#FFFFBA",
-  PURPLE = "#E2BAFF",
-  ORANGE = "#FFD8B3",
-  PINK = "#FFC9DE",
+  Red = "#FF6B6B",
+  Blue = "#4ECDC4",
+  Green = "#45B7A0",
+  Yellow = "#FFD93D",
+  Purple = "#9B59B6",
+  Orange = "#FF8C42",
+  Pink = "#FF69B4",
 }
 
 export enum DarkBackgroundColors {
-  RED = "#8B0000",
-  BLUE = "#000080",
-  GREEN = "#006400",
-  YELLOW = "#8B8000",
-  PURPLE = "#4B0082",
-  ORANGE = "#FF8C00",
-  PINK = "#FF1493",
+  Red = "#8E2323",
+  Blue = "#1A5F7A",
+  Green = "#2D6E4E",
+  Yellow = "#B8860B",
+  Purple = "#5B3256",
+  Orange = "#C25E00",
+  Pink = "#B03060",
 }
 
 export enum StoredBackgroundColors {

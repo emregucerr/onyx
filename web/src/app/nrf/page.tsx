@@ -40,7 +40,7 @@ export default async function Page(props: {
   } = data;
 
   return (
-    <>
+    <div className="w-full h-full bg-black">
       <InstantSSRAutoRefresh />
       {shouldShowWelcomeModal && (
         <WelcomeModal user={user} requestCookies={requestCookies} />
@@ -63,6 +63,6 @@ export default async function Page(props: {
       >
         <NRFPage />
       </ChatProvider>
-    </>
+    </div>
   );
 }
