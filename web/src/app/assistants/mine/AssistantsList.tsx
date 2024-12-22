@@ -6,6 +6,7 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
+  FiBarChart,
   FiEdit2,
   FiList,
   FiMinus,
@@ -243,6 +244,18 @@ function AssistantListItem({
                     <FiPlus size={18} className="text-text-800" /> Add
                   </button>
                 ),
+
+                isOwnedByUser ? (
+                  <button
+                    key="delete"
+                    className="flex items-center gap-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left"
+                    onClick={() =>
+                      router.push(`/assistants/stats/${assistant.id}`)
+                    }
+                  >
+                    <FiBarChart size={18} /> View Stats
+                  </button>
+                ) : null,
                 isOwnedByUser ? (
                   <button
                     key="delete"

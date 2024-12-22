@@ -28,6 +28,16 @@ class QueryAnalyticsResponse(BaseModel):
     date: datetime.date
 
 
+class AssistantStatsResponse(BaseModel):
+    total_messages: int
+    total_unique_users: int
+
+
+@router.get("/assistant/{assistant_id}/stats")
+def get_assistant_stats(assistant_id: int):
+    pass
+
+
 @router.get("/admin/query")
 def get_query_analytics(
     start: datetime.datetime | None = None,
