@@ -1,10 +1,5 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  Dispatch,
-  SetStateAction,
-} from "react";
+"use client";
+import React, { useState, useEffect, useRef } from "react";
 import FixedLogo from "../chat/shared_chat_search/FixedLogo";
 import { ChatInputBar } from "../chat/input/ChatInputBar";
 import { Switch } from "@/components/ui/switch";
@@ -14,14 +9,6 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +21,24 @@ import { Button } from "@/components/ui/button";
 import { SimplifiedChatInputBar } from "../chat/input/SimplifiedChatInputBar";
 import { Hamburger } from "@phosphor-icons/react";
 import { Menu } from "lucide-react";
+import Link from "next/link";
+import {
+  darkImages,
+  lightImages,
+  Shortcut,
+  StoredBackgroundColors,
+} from "./interfaces";
+import {
+  DEFAULT_DARK_BACKGROUND_IMAGE,
+  DEFAULT_LIGHT_BACKGROUND_IMAGE,
+  NEW_TAB_PAGE_VIEW_KEY,
+  SHORTCUTS_KEY,
+  USE_ONYX_AS_NEW_TAB_KEY,
+} from "./interfaces";
+import { AddShortCut, NewShortCutModal, ShortCut } from "./ShortCuts";
+import { Modal } from "@/components/Modal";
+import Title from "@/components/ui/title";
+import { userAgent } from "next/server";
 
 const SidebarSwitch = ({
   checked,
@@ -50,6 +55,7 @@ const SidebarSwitch = ({
       checked={checked}
       onCheckedChange={onCheckedChange}
       className="data-[state=checked]:bg-white data-[state=unchecked]:bg-gray-600"
+      circleClassName="data-[state=checked]:bg-neutral-200"
     />
   </div>
 );
@@ -88,16 +94,6 @@ export default function NRFPageNewDesign() {
 
   const [message, setMessage] = useState("");
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const darkImages = [
-    "https://images.unsplash.com/photo-1692520883599-d543cfe6d43d?q=80&w=2666&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "https://images.unsplash.com/photo-1520330461350-508fab483d6a?q=80&w=2723&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  ];
-
-  const lightImages = [
-    "https://images.unsplash.com/photo-1473830439578-14e9a9e61d55?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "https://images.unsplash.com/photo-1500964757637-c85e8a162699?q=80&w=2703&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  ];
 
   // Whether or not Onyx is used as the default new tab
   const [useOnyxAsNewTab, setUseOnyxAsNewTab] = useState<boolean>(() => {
@@ -115,44 +111,6 @@ export default function NRFPageNewDesign() {
   const [newTabPageView, setNewTabPageView] = useState(
     localStorage.getItem("newTabPageView") || "simple"
   );
-
-  enum LightBackgroundColors {
-    RED = "#FFB3BA",
-    BLUE = "#BAEEFF",
-    GREEN = "#BAFFC9",
-    YELLOW = "#FFFFBA",
-    PURPLE = "#E2BAFF",
-    ORANGE = "#FFD8B3",
-    PINK = "#FFC9DE",
-  }
-
-  enum DarkBackgroundColors {
-    RED = "#8B0000",
-    BLUE = "#000080",
-    GREEN = "#006400",
-    YELLOW = "#8B8000",
-    PURPLE = "#4B0082",
-    ORANGE = "#FF8C00",
-    PINK = "#FF1493",
-  }
-
-  enum StoredBackgroundColors {
-    RED = "Red",
-    BLUE = "Blue",
-    GREEN = "Green",
-    YELLOW = "Yellow",
-    PURPLE = "Purple",
-    ORANGE = "Orange",
-    PINK = "Pink",
-  }
-  type BackgroundColors = LightBackgroundColors | DarkBackgroundColors;
-
-  interface Shortcut {
-    name: string;
-    url: string;
-    backgroundColor: StoredBackgroundColors;
-  }
-
   const [shortCuts, setShortCuts] = useState<Shortcut[]>(
     JSON.parse(localStorage.getItem("shortCuts") || "[]")
   );
@@ -171,6 +129,8 @@ export default function NRFPageNewDesign() {
     }
   };
 
+  const { user } = useUser();
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -179,40 +139,35 @@ export default function NRFPageNewDesign() {
       inputRef.current.focus();
     }
   }, []);
-
+  const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
   const [inputValue, setInputValue] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
   };
 
-  const handleInputSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle the input submission here
-    console.log("Input submitted:", inputValue);
-    setInputValue("");
-  };
-
   // Saved background in localStorage
   const [backgroundUrl, setBackgroundUrl] = useState<string>(() => {
     return (
       localStorage.getItem(
-        theme === "light" ? "onyxBackgroundLight" : "onyxBackgroundDark"
+        theme === "light"
+          ? DEFAULT_LIGHT_BACKGROUND_IMAGE
+          : DEFAULT_DARK_BACKGROUND_IMAGE
       ) ||
       "https://images.unsplash.com/photo-1548613112-7455315eef5f?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     );
   });
 
   useEffect(() => {
-    localStorage.setItem("shortCuts", JSON.stringify(shortCuts));
+    localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortCuts));
   }, [shortCuts]);
 
   useEffect(() => {
-    localStorage.setItem("newTabPageView", newTabPageView);
+    localStorage.setItem(NEW_TAB_PAGE_VIEW_KEY, newTabPageView);
   }, [newTabPageView]);
 
   useEffect(() => {
-    localStorage.setItem("useOnyxAsNewTab", String(useOnyxAsNewTab));
+    localStorage.setItem(USE_ONYX_AS_NEW_TAB_KEY, String(useOnyxAsNewTab));
   }, [useOnyxAsNewTab]);
 
   const onSubmit = async ({
@@ -223,6 +178,13 @@ export default function NRFPageNewDesign() {
     const userMessage = messageOverride || message;
     console.log("User message:", userMessage);
     setMessage("");
+    if (window.top) {
+      window.top.location.href =
+        "/chat?send-on-load=true&user-prompt=" + userMessage;
+    } else {
+      window.location.href =
+        "/chat?send-on-load=true&user-prompt=" + userMessage;
+    }
 
     setPopup({
       message: `Message submitted: ${userMessage}`,
@@ -230,36 +192,6 @@ export default function NRFPageNewDesign() {
     });
   };
 
-  const ShortCut = ({ shortCut }: { shortCut: Shortcut }) => {
-    return (
-      <div
-        onClick={() => {
-          window.open(shortCut.url, "_blank");
-        }}
-        className="w-20 h-20 rounded-lg"
-        style={{
-          backgroundColor: shortCut.backgroundColor,
-        }}
-      >
-        <h1>{shortCut.name}</h1>
-      </div>
-    );
-  };
-
-  const AddShortCut = ({
-    openShortCutModal,
-  }: {
-    openShortCutModal: () => void;
-  }) => {
-    return (
-      <button
-        onClick={openShortCutModal}
-        className="w-20 h-20 rounded-lg bg-white/70 hover:bg-white/50 backdrop-blur-sm p-2 rounded-lg"
-      >
-        <h1 className="text-neutral-900 text-xs">New Bookmark</h1>
-      </button>
-    );
-  };
   // Toggle sidebar
   const toggleSettings = () => {
     setSettingsOpen((prev) => !prev);
@@ -279,103 +211,6 @@ export default function NRFPageNewDesign() {
     setUseOnyxAsNewTab(false);
     setShowTurnOffModal(false);
   };
-  const NewShortCutModal = ({
-    isOpen,
-    onClose,
-    onAdd,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onAdd: (shortcut: Shortcut) => void;
-  }) => {
-    const [name, setName] = useState("");
-    const [url, setUrl] = useState("");
-    const [backgroundColor, setBackgroundColor] =
-      useState<StoredBackgroundColors>(StoredBackgroundColors.BLUE);
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      onAdd({ name, url, backgroundColor });
-      onClose();
-    };
-
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[95%] sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Shortcut</DialogTitle>
-            <DialogDescription>
-              Create a new shortcut for quick access to your favorite websites.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="w-full  grid gap-4 py-4">
-              <div className="text-xs grid grid-cols-7 w-full items-center gap-2">
-                <Label htmlFor="name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="col-span-5 border-neutral-700"
-                />
-              </div>
-              <div className="grid w-full grid-cols-7 items-center gap-4">
-                <Label htmlFor="url" className="text-right">
-                  URL
-                </Label>
-                <Input
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="col-span-5 border-neutral-700"
-                />
-              </div>
-              <div className="grid grid-cols-7 w-full items-center gap-4">
-                <Label htmlFor="color" className="text-right">
-                  Color
-                </Label>
-                <Select
-                  onValueChange={(value: StoredBackgroundColors) =>
-                    setBackgroundColor(value)
-                  }
-                >
-                  <SelectTrigger className="col-span-5 flex items-center">
-                    <div
-                      className="w-3 h-3 rounded-sm mr-2"
-                      style={{ backgroundColor }}
-                    ></div>
-                    <SelectValue placeholder="Select a color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(StoredBackgroundColors).map((color) => (
-                      <SelectItem
-                        className="relative"
-                        key={color}
-                        value={color}
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 rounded-sm mr-2"
-                            style={{ backgroundColor: color }}
-                          ></div>
-                          {color}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Add Shortcut</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    );
-  };
 
   const [showShortCutModal, setShowShortCutModal] = useState(false);
 
@@ -388,6 +223,31 @@ export default function NRFPageNewDesign() {
         overflow: "hidden",
       }}
     >
+      {!user && (
+        <Modal className="max-w-md mx-auto">
+          <>
+            <Title className="text-xl font-bold mb-2 text-left text-center text-neutral-800 dark:text-white">
+              Welcome to Onyx
+            </Title>
+            <p className="text-neutral-600 dark:text-neutral-300  text-sm text-left">
+              Log in to access all features and personalize your experience.
+            </p>
+            <Button
+              onClick={() => {
+                if (window.top) {
+                  window.top.location.href =
+                    "/auth/login?next=/chat?newTab=true";
+                } else {
+                  window.location.href = "/auth/login?next=/chat?newTab=true";
+                }
+              }}
+              className="mt-2 block w-full bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg text-center transition-all duration-300 ease-in-out shadow-lg hover:shadow-xl focus:outline-none"
+            >
+              Log In
+            </Button>
+          </>
+        </Modal>
+      )}
       {/* Top bar with settings icon */}
       <div
         style={{
@@ -449,8 +309,15 @@ export default function NRFPageNewDesign() {
 
         {showShortcuts && (
           <div className="grid flex grid-cols-4 mt-20 gap-4">
-            {shortCuts.map((shortCut) => (
-              <ShortCut shortCut={shortCut} />
+            {shortCuts.map((shortCut, index) => (
+              <ShortCut
+                key={index}
+                onEdit={() => {
+                  setEditingShortcut(shortCut);
+                  setShowShortCutModal(true);
+                }}
+                shortCut={shortCut}
+              />
             ))}
             <AddShortCut openShortCutModal={() => setShowShortCutModal(true)} />
           </div>
@@ -465,9 +332,9 @@ export default function NRFPageNewDesign() {
             setShortCuts([...shortCuts, shortCut]);
             setShowShortCutModal(false);
           }}
+          editingShortcut={editingShortcut}
         />
       )}
-      {/* {newTabPageView && } */}
 
       {/* Bottom-right container for the "Use Onyx as new tab" toggle */}
       <div className="absolute bottom-4 right-4 z-10 flex items-center bg-white/80 backdrop-blur-sm p-2 rounded-lg">

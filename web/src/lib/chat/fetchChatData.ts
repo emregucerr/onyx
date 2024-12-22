@@ -95,7 +95,7 @@ export async function fetchChatData(searchParams: {
     const redirectUrl = searchParamsString
       ? `${fullUrl}?${searchParamsString}`
       : fullUrl;
-    return redirect(`/auth/login?next=${encodeURIComponent(redirectUrl)}`);
+    // return redirect(`/auth/login?next=${encodeURIComponent(redirectUrl)}`);
   }
 
   if (user && !user.is_verified && authTypeMetadata?.requiresVerification) {

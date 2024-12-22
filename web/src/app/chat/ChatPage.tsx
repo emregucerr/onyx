@@ -391,6 +391,7 @@ export function ChatPage({
   // this is triggered every time the user switches which chat
   // session they are using
   const [chromSentUrls, setchromSentUrls] = useState<string[]>([]);
+  const [selectedChromeUrls, setSelectedChromeUrls] = useState<string[]>([]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -399,7 +400,9 @@ export function ChatPage({
         // The extension is telling us the new URL
         const newUrl = event.data.url;
         console.log("Got a URL from the extension side panel:", newUrl);
-        setchromSentUrls((prev) => [...prev, newUrl]);
+        if (newUrl && /^https?:\/\//.test(newUrl)) {
+          setchromSentUrls((prev) => [...prev.slice(-2), newUrl]);
+        }
 
         // Use or store this URL as needed in your ChatPage
         // e.g., set some local state or call a helper to do something with it
@@ -413,6 +416,7 @@ export function ChatPage({
       window.removeEventListener("message", handleMessage);
     };
   }, []);
+
   useEffect(() => {
     const priorChatSessionId = chatSessionIdRef.current;
     const loadedSessionId = loadedIdSessionRef.current;
@@ -2356,7 +2360,7 @@ export function ChatPage({
                                   currentSessionChatState == "input" &&
                                   !loadingError &&
                                   allAssistants.length > 1 && (
-                                    <div className="mx-auto px-4 w-full max-w-[750px] flex flex-col items-center">
+                                    <div className="mobile:hidden mx-auto px-4 w-full max-w-[750px] flex flex-col items-center">
                                       <Separator className="mx-2 w-full my-12" />
                                       <div className="text-sm text-black font-medium mb-4">
                                         Recent Assistants
@@ -2786,6 +2790,25 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              selectChromeUrl={(chromeUrl: string) => {
+                                setSelectedChromeUrls([
+                                  ...selectedChromeUrls,
+                                  chromeUrl,
+                                ]);
+                                setchromSentUrls((chromSentUrls: string[]) =>
+                                  chromSentUrls.filter(
+                                    (url) => url !== chromeUrl
+                                  )
+                                );
+                              }}
+                              selectedChromeUrls={selectedChromeUrls}
+                              removeSelectedChromeUrl={(chromeUrl: string) => {
+                                setSelectedChromeUrls(
+                                  selectedChromeUrls.filter(
+                                    (url) => url !== chromeUrl
+                                  )
+                                );
+                              }}
                               chromSentUrls={chromSentUrls}
                               removeChromeSentUrls={(chromSentUrl: string) => {
                                 setchromSentUrls(

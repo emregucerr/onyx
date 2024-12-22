@@ -5,8 +5,8 @@ import { WelcomeModal } from "@/components/initialSetup/welcome/WelcomeModalWrap
 import { ChatProvider } from "@/components/context/ChatContext";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { cookies } from "next/headers";
-import WrappedNRF from "./WrappedNRF";
 import { NEXT_PUBLIC_ENABLE_CHROME_EXTENSION } from "@/lib/constants";
+import NRFPage from "./NRFPage";
 
 export default async function Page(props: {
   searchParams: Promise<{ [key: string]: string }>;
@@ -61,7 +61,7 @@ export default async function Page(props: {
           defaultAssistantId,
         }}
       >
-        <WrappedNRF initiallyToggled={toggleSidebar} />
+        <NRFPage />
       </ChatProvider>
     </>
   );
