@@ -88,7 +88,6 @@ const SentUrlChip = ({
       </p>
       <XIcon
         onClick={(e) => {
-          // e.stopPropagation();
           onRemove(url);
         }}
         size={16}

@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OnyxDocument } from "@/lib/search/interfaces";
 import { ValidSources } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { FiCheck, FiEdit2, FiSearch, FiX } from "react-icons/fi";
@@ -47,11 +48,15 @@ export function SearchSummary({
   query,
   finished,
   handleSearchQueryEdit,
+  docs,
+  toggleDocumentSelection,
 }: {
   index: number;
   finished: boolean;
   query: string;
   handleSearchQueryEdit?: (query: string) => void;
+  docs: OnyxDocument[];
+  toggleDocumentSelection: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [finalQuery, setFinalQuery] = useState(query);
@@ -90,17 +95,23 @@ export function SearchSummary({
 
   const searchingForDisplay = (
     <div className={`flex p-1 rounded ${isOverflowed && "cursor-default"}`}>
-      <div className="cursor-pointer mr-1 flex -space-x-2">
-        <div className="rounded-full bg-white -p-.5 z-30">
-          <SourceIcon sourceType={ValidSources.Asana} iconSize={14} />
-        </div>
-        <div className="rounded-full bg-white -p-.5 z-20">
-          <SourceIcon sourceType={ValidSources.Gong} iconSize={14} />
-        </div>
-        <div className="rounded-full bg-white -p-.5 z-10">
-          <SourceIcon sourceType={ValidSources.Bookstack} iconSize={14} />
-        </div>
-      </div>
+      {docs && (
+        <button
+          className="desktop:hidden cursor-pointer mr-1 flex -space-x-2"
+          onClick={() => toggleDocumentSelection()}
+        >
+          {Array.from(new Set(docs.map((doc) => doc.source_type)))
+            .slice(0, 3)
+            .map((sourceType, index) => (
+              <div
+                key={index}
+                className={`rounded-full bg-white -p-.5 z-${30 - index * 10}`}
+              >
+                <SourceIcon sourceType={sourceType} iconSize={14} />
+              </div>
+            ))}
+        </button>
+      )}
 
       <FiSearch className="mobile:hidden flex-none mr-2 my-auto" size={14} />
       <div

@@ -410,6 +410,8 @@ export const AIMessage = ({
                               query={query}
                               finished={toolCall?.tool_result != undefined}
                               handleSearchQueryEdit={handleSearchQueryEdit}
+                              docs={docs || []}
+                              toggleDocumentSelection={toggleDocumentSelection!}
                             />
                           </div>
                         )}

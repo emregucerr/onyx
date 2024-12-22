@@ -39,6 +39,7 @@ import { AddShortCut, NewShortCutModal, ShortCut } from "./ShortCuts";
 import { Modal } from "@/components/Modal";
 import Title from "@/components/ui/title";
 import { userAgent } from "next/server";
+import { useNightTime } from "./dateUtils";
 
 const SidebarSwitch = ({
   checked,
@@ -129,6 +130,7 @@ export default function NRFPageNewDesign() {
     }
   };
 
+  const { isNight } = useNightTime();
   const { user } = useUser();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -280,7 +282,7 @@ export default function NRFPageNewDesign() {
             theme === "light" ? "text-neutral-800" : "text-white"
           }`}
         >
-          Start your day with Onyx
+          {isNight ? "End your day with Onyx" : "Start your day with Onyx"}
         </h1>
 
         <SimplifiedChatInputBar
@@ -308,7 +310,7 @@ export default function NRFPageNewDesign() {
         />
 
         {showShortcuts && (
-          <div className="grid flex grid-cols-4 mt-20 gap-4">
+          <div className=" flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
             {shortCuts.map((shortCut, index) => (
               <ShortCut
                 key={index}

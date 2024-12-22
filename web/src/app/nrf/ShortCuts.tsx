@@ -27,6 +27,7 @@ export const ShortCut = ({
   shortCut: Shortcut;
   onEdit: (shortcut: Shortcut) => void;
 }) => {
+  //   const websiteIconUrl = new URL(shortCut.url).origin + "/favicon.ico";
   return (
     <div
       className="w-24 h-24 rounded-xl shadow-lg relative group transition-all duration-300 ease-in-out hover:scale-105"
@@ -47,6 +48,7 @@ export const ShortCut = ({
         onClick={() => window.open(shortCut.url, "_blank")}
         className="w-full h-full flex flex-col items-center justify-center cursor-pointer"
       >
+        {/* <img src={websiteIconUrl} className="w-8 h-8" alt={shortCut.name} /> */}
         <h1 className="text-white font-semibold text-sm truncate px-2">
           {shortCut.name}
         </h1>
