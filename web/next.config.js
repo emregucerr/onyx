@@ -13,11 +13,7 @@ const cspHeader = `
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    ${
-      process.env.NEXT_PUBLIC_ENABLE_CHROME_EXTENSION
-        ? "frame-ancestors 'self' chrome-extension://iclfmmonpknonmfkggbjnaidfkfenjoh;"
-        : "frame-ancestors 'none';"
-    }
+
     ${process.env.NEXT_PUBLIC_CLOUD_ENABLED === "true" ? "upgrade-insecure-requests;" : ""}
 `;
 

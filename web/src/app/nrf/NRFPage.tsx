@@ -100,27 +100,49 @@ export default function NRFPageNewDesign() {
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Whether or not Onyx is used as the default new tab
-  const [useOnyxAsNewTab, setUseOnyxAsNewTab] = useState<boolean>(() => {
-    return localStorage.getItem("useOnyxAsNewTab") === "true";
-  });
+  const [useOnyxAsNewTab, setUseOnyxAsNewTab] = useState<boolean>(true);
 
   // Show modal to confirm turning off Onyx as new tab
   const [showTurnOffModal, setShowTurnOffModal] = useState<boolean>(false);
 
   // Settings sidebar open/close go
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [newTabPageView, setNewTabPageView] = useState(
-    localStorage.getItem("newTabPageView") || "simple"
-  );
-  const [shortCuts, setShortCuts] = useState<Shortcut[]>(
-    JSON.parse(localStorage.getItem("shortCuts") || "[]")
-  );
+  const [shortCuts, setShortCuts] = useState<Shortcut[]>([]);
 
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("onyxTheme") || "dark";
-  });
+  const [theme, setTheme] = useState<string>("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("setting state from localStorage");
+
+      const storedTheme = window.localStorage.getItem("onyxTheme");
+      const backgroundUrl = window.localStorage.getItem(
+        storedTheme === "light"
+          ? DEFAULT_LIGHT_BACKGROUND_IMAGE
+          : DEFAULT_DARK_BACKGROUND_IMAGE
+      );
+      const storedUseOnyx = window.localStorage.getItem("useOnyxAsNewTab");
+      const storedShortcuts = window.localStorage.getItem("shortCuts");
+      const showShortcuts = window.localStorage.getItem("showShortcuts");
+
+      if (backgroundUrl) {
+        setBackgroundUrl(backgroundUrl);
+      }
+
+      setTheme(storedTheme || "dark");
+      setUseOnyxAsNewTab(storedUseOnyx === "true");
+      setShortCuts(JSON.parse(storedShortcuts || "[]"));
+      setShowShortcuts(showShortcuts === "true");
+    } else {
+      console.log("no localStorage");
+    }
+  }, []);
+
+  const toggleShortcuts = (showShortcuts: boolean) => {
+    setShowShortcuts(showShortcuts);
+    localStorage.setItem("showShortcuts", String(showShortcuts));
+  };
 
   const toggleTheme = (theme: string) => {
     let mode = null;
@@ -154,33 +176,26 @@ export default function NRFPageNewDesign() {
     }
   }, []);
   const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
-  const [inputValue, setInputValue] = useState("");
 
   // Saved background in localStorage
-  const [backgroundUrl, setBackgroundUrl] = useState<string>(() => {
-    return (
-      localStorage.getItem(
-        theme === "light"
-          ? DEFAULT_LIGHT_BACKGROUND_IMAGE
-          : DEFAULT_DARK_BACKGROUND_IMAGE
-      ) ||
-      "https://images.unsplash.com/photo-1548613112-7455315eef5f?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    );
-  });
+  const [backgroundUrl, setBackgroundUrl] = useState<string>(
+    "https://images.unsplash.com/photo-1548613112-7455315eef5f?q=80&w=2787&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+  );
 
   const updateBackgroundUrl = (url: string) => {
     setBackgroundUrl(url);
-    localStorage.setItem("backgroundUrl", url);
+    localStorage.setItem(
+      theme === "light"
+        ? DEFAULT_LIGHT_BACKGROUND_IMAGE
+        : DEFAULT_DARK_BACKGROUND_IMAGE,
+      url
+    );
   };
 
   const updateShortcuts = (shortcuts: Shortcut[]) => {
     setShortCuts(shortcuts);
     localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
   };
-
-  useEffect(() => {
-    localStorage.setItem(NEW_TAB_PAGE_VIEW_KEY, newTabPageView);
-  }, [newTabPageView]);
 
   useEffect(() => {
     localStorage.setItem(USE_ONYX_AS_NEW_TAB_KEY, String(useOnyxAsNewTab));
@@ -375,47 +390,54 @@ export default function NRFPageNewDesign() {
       )}
       <Dropzone onDrop={handleImageUpload} noClick>
         {({ getRootProps }) => (
-          <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-[90%]  lg:max-w-3xl">
-            <h1
-              className={`pl-2 text-xl text-left w-full mb-4 ${
-                theme === "light" ? "text-neutral-800" : "text-white"
-              }`}
-            >
-              {isNight ? "End your day with Onyx" : "Start your day with Onyx"}
-            </h1>
+          <div
+            {...getRootProps()}
+            className="absolute   top-20 left-0 w-full h-full flex flex-col"
+          >
+            <div className="pointer-events-auto absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-[90%]  lg:max-w-3xl">
+              <h1
+                className={`pl-2 text-xl text-left w-full mb-4 ${
+                  theme === "light" ? "text-neutral-800" : "text-white"
+                }`}
+              >
+                {isNight
+                  ? "End your day with Onyx"
+                  : "Start your day with Onyx"}
+              </h1>
 
-            <SimplifiedChatInputBar
-              onSubmit={onSubmit}
-              handleFileUpload={handleImageUpload}
-              message={message}
-              setMessage={setMessage}
-              files={currentMessageFiles}
-              setFiles={setCurrentMessageFiles}
-              filterManager={filterManager}
-              textAreaRef={textAreaRef}
-              existingSources={availableSources}
-              availableDocumentSets={documentSets}
-              availableTags={tags}
-            />
+              <SimplifiedChatInputBar
+                onSubmit={onSubmit}
+                handleFileUpload={handleImageUpload}
+                message={message}
+                setMessage={setMessage}
+                files={currentMessageFiles}
+                setFiles={setCurrentMessageFiles}
+                filterManager={filterManager}
+                textAreaRef={textAreaRef}
+                existingSources={availableSources}
+                availableDocumentSets={documentSets}
+                availableTags={tags}
+              />
 
-            {showShortcuts && (
-              <div className=" mx-auto flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
-                {shortCuts.map((shortCut, index) => (
-                  <ShortCut
-                    key={index}
-                    theme={theme}
-                    onEdit={() => {
-                      setEditingShortcut(shortCut);
-                      setShowShortCutModal(true);
-                    }}
-                    shortCut={shortCut}
+              {showShortcuts && (
+                <div className=" mx-auto flex -mx-20 flex gap-x-6 mt-20 gap-y-4">
+                  {shortCuts.map((shortCut, index) => (
+                    <ShortCut
+                      key={index}
+                      theme={theme}
+                      onEdit={() => {
+                        setEditingShortcut(shortCut);
+                        setShowShortCutModal(true);
+                      }}
+                      shortCut={shortCut}
+                    />
+                  ))}
+                  <AddShortCut
+                    openShortCutModal={() => setShowShortCutModal(true)}
                   />
-                ))}
-                <AddShortCut
-                  openShortCutModal={() => setShowShortCutModal(true)}
-                />
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Dropzone>
@@ -424,6 +446,7 @@ export default function NRFPageNewDesign() {
           theme={theme}
           onDelete={(shortcut) => {
             updateShortcuts(shortCuts.filter((s) => s.name !== shortcut.name));
+            setShowShortCutModal(false);
           }}
           isOpen={showShortCutModal}
           onClose={() => setShowShortCutModal(false)}
@@ -431,7 +454,15 @@ export default function NRFPageNewDesign() {
             if (shortCuts.length >= 8) {
               setShowMaxShortcutsModal(true);
             } else {
-              updateShortcuts([...shortCuts, shortCut]);
+              if (editingShortcut) {
+                updateShortcuts(
+                  shortCuts
+                    .filter((s) => s.name !== editingShortcut.name)
+                    .concat(shortCut)
+                );
+              } else {
+                updateShortcuts([...shortCuts, shortCut]);
+              }
               setShowShortCutModal(false);
             }
           }}
@@ -452,7 +483,6 @@ export default function NRFPageNewDesign() {
           onCheckedChange={(val) => handleUseOnyxToggle(val)}
         />
       </div>
-      {/* Improved slide-in settings sidebar */}
       <div
         className="fixed top-0 right-0 w-[360px] h-full bg-[#202124] text-gray-300 overflow-y-auto z-20 transition-transform duration-300 ease-in-out transform"
         style={{
@@ -483,7 +513,7 @@ export default function NRFPageNewDesign() {
 
           <SidebarSwitch
             checked={showShortcuts}
-            onCheckedChange={setShowShortcuts}
+            onCheckedChange={toggleShortcuts}
             label="Show bookmarks"
           />
 
@@ -521,7 +551,7 @@ export default function NRFPageNewDesign() {
             {(theme === "dark" ? darkImages : lightImages).map((bg, index) => (
               <div
                 key={bg}
-                onClick={() => setBackgroundUrl(bg)}
+                onClick={() => updateBackgroundUrl(bg)}
                 className={`relative ${
                   index === 0 ? "col-span-2 row-span-2" : ""
                 } cursor-pointer rounded-sm overflow-hidden`}
