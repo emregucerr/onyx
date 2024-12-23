@@ -19,6 +19,7 @@ from onyx.auth.users import current_user
 from onyx.db.engine import get_session
 from onyx.db.models import Persona
 from onyx.db.models import User
+from onyx.db.models import UserRole
 
 router = APIRouter(prefix="/analytics")
 
@@ -212,19 +213,14 @@ class AssistantDailyUsageResponse(BaseModel):
 def user_owns_assistant(
     db_session: Session, user: User | None, assistant_id: int
 ) -> bool:
-    """
-    Check if the given user owns the assistant with the given ID.
+    # If user is None, assume the user is an admin or auth is disabled
+    if not user or user.role == UserRole.ADMIN:
+        return True
 
-    :param db_session: SQLAlchemy database session
-    :param user: User object
-    :param assistant_id: ID of the assistant to check
-    :return: True if the user owns the assistant, False otherwise
-    """
     assistant = db_session.query(Persona).filter(Persona.id == assistant_id).first()
     if not assistant:
         return False
-    if not user:
-        return False
+
     return assistant.user_id == user.id
 
 

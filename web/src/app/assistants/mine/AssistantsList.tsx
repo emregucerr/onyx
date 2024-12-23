@@ -60,6 +60,7 @@ import { MakePublicAssistantModal } from "@/app/chat/modal/MakePublicAssistantMo
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
+import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 
 function DraggableAssistantListItem({ ...props }: any) {
   const {
@@ -117,6 +118,7 @@ function AssistantListItem({
   const router = useRouter();
   const [showSharingModal, setShowSharingModal] = useState(false);
 
+  const isEnterpriseEnabled = usePaidEnterpriseFeaturesEnabled();
   const isOwnedByUser = checkUserOwnsAssistant(user, assistant);
 
   return (
@@ -245,9 +247,9 @@ function AssistantListItem({
                   </button>
                 ),
 
-                isOwnedByUser ? (
+                isOwnedByUser && isEnterpriseEnabled ? (
                   <button
-                    key="delete"
+                    key="view-stats"
                     className="flex items-center gap-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left"
                     onClick={() =>
                       router.push(`/assistants/stats/${assistant.id}`)

@@ -14,6 +14,7 @@ type AssistantDailyUsageResponse = {
   date: string;
   total_messages: number;
   total_unique_users: number;
+  unique_users: string[];
 };
 
 export function AssistantStats({ assistantId }: { assistantId: number }) {
@@ -93,10 +94,14 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
     () => stats?.reduce((sum, day) => sum + day.total_messages, 0) || 0,
     [stats]
   );
-  const totalUniqueUsers = useMemo(
-    () => stats?.reduce((sum, day) => sum + day.total_unique_users, 0) || 0,
-    [stats]
-  );
+  const totalUniqueUsers = useMemo(() => {
+    if (!stats) return 0;
+    const uniqueUsersSet = new Set<string>();
+    stats.forEach((day) => {
+      day.unique_users.forEach((userId) => uniqueUsersSet.add(userId));
+    });
+    return uniqueUsersSet.size;
+  }, [stats]);
 
   let content;
   if (isLoading) {
