@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from ee.onyx.db.analytics import fetch_query_analytics
 from onyx.auth.users import current_admin_user
 from onyx.auth.users import current_user
 from onyx.db.engine import get_session
+from onyx.db.models import Persona
 from onyx.db.models import User
 
 router = APIRouter(prefix="/analytics")
@@ -207,30 +209,43 @@ class AssistantDailyUsageResponse(BaseModel):
     total_unique_users: int
 
 
+def user_owns_assistant(db_session: Session, user: User, assistant_id: int) -> bool:
+    """
+    Check if the given user owns the assistant with the given ID.
+
+    :param db_session: SQLAlchemy database session
+    :param user: User object
+    :param assistant_id: ID of the assistant to check
+    :return: True if the user owns the assistant, False otherwise
+    """
+    assistant = db_session.query(Persona).filter(Persona.id == assistant_id).first()
+    if not assistant:
+        return False
+    return assistant.user_id == user.id
+
+
 @router.get("/assistant/{assistant_id}/stats")
 def get_assistant_stats(
     assistant_id: int,
     start: datetime.datetime | None = None,
     end: datetime.datetime | None = None,
-    user: User = Depends(current_user),  # Or a different "current_user" if needed
+    user: User = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> list[AssistantDailyUsageResponse]:
     """
     Returns daily message and unique user counts for a user's assistant.
     """
-    # Optional: confirm the requesting user actually owns this assistant_id
-    # e.g. something like:
-    #   assistant = db_session.query(Assistant).get(assistant_id)
-    #   if assistant.owner_id != user.id:
-    #       raise HTTPException(status_code=403, detail="Not allowed.")
-    # or skip if your system has a different ownership check.
-
     start = start or (
         datetime.datetime.utcnow() - datetime.timedelta(days=_DEFAULT_LOOKBACK_DAYS)
     )
     end = end or datetime.datetime.utcnow()
 
-    # Pull daily usage from the new DB calls
+    if not user_owns_assistant(db_session, user, assistant_id):
+        raise HTTPException(
+            status_code=403, detail="Not allowed to access this assistant's stats."
+        )
+
+    # Pull daily usage from the DB calls
     messages_data = fetch_assistant_message_analytics(
         db_session, assistant_id, start, end
     )

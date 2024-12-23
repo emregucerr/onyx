@@ -386,7 +386,6 @@ export function AssistantsList() {
           }}
         />
       )}
-
       {makePublicPersona && (
         <MakePublicAssistantModal
           isPublic={makePublicPersona.is_public}
