@@ -9,7 +9,7 @@ export default function WrappedAssistantsStats({
 }) {
   return (
     <SidebarWrapper page="chat" initiallyToggled={initiallyToggled}>
-      <AssistantStats />
+      <AssistantStats assistantId={1} />
     </SidebarWrapper>
   );
 }

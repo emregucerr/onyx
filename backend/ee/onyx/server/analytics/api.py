@@ -6,12 +6,15 @@ from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from ee.onyx.db.analytics import fetch_assistant_message_analytics
+from ee.onyx.db.analytics import fetch_assistant_unique_users
 from ee.onyx.db.analytics import fetch_onyxbot_analytics
 from ee.onyx.db.analytics import fetch_per_user_query_analytics
 from ee.onyx.db.analytics import fetch_persona_message_analytics
 from ee.onyx.db.analytics import fetch_persona_unique_users
 from ee.onyx.db.analytics import fetch_query_analytics
 from onyx.auth.users import current_admin_user
+from onyx.auth.users import current_user
 from onyx.db.engine import get_session
 from onyx.db.models import User
 
@@ -31,11 +34,6 @@ class QueryAnalyticsResponse(BaseModel):
 class AssistantStatsResponse(BaseModel):
     total_messages: int
     total_unique_users: int
-
-
-@router.get("/assistant/{assistant_id}/stats")
-def get_assistant_stats(assistant_id: int):
-    pass
 
 
 @router.get("/admin/query")
@@ -201,3 +199,59 @@ def get_persona_unique_users(
             )
         )
     return unique_user_counts
+
+
+class AssistantDailyUsageResponse(BaseModel):
+    date: datetime.date
+    total_messages: int
+    total_unique_users: int
+
+
+@router.get("/assistant/{assistant_id}/stats")
+def get_assistant_stats(
+    assistant_id: int,
+    start: datetime.datetime | None = None,
+    end: datetime.datetime | None = None,
+    user: User = Depends(current_user),  # Or a different "current_user" if needed
+    db_session: Session = Depends(get_session),
+) -> list[AssistantDailyUsageResponse]:
+    """
+    Returns daily message and unique user counts for a user's assistant.
+    """
+    # Optional: confirm the requesting user actually owns this assistant_id
+    # e.g. something like:
+    #   assistant = db_session.query(Assistant).get(assistant_id)
+    #   if assistant.owner_id != user.id:
+    #       raise HTTPException(status_code=403, detail="Not allowed.")
+    # or skip if your system has a different ownership check.
+
+    start = start or (
+        datetime.datetime.utcnow() - datetime.timedelta(days=_DEFAULT_LOOKBACK_DAYS)
+    )
+    end = end or datetime.datetime.utcnow()
+
+    # Pull daily usage from the new DB calls
+    messages_data = fetch_assistant_message_analytics(
+        db_session, assistant_id, start, end
+    )
+    unique_users_data = fetch_assistant_unique_users(
+        db_session, assistant_id, start, end
+    )
+
+    # Map each day => (messages, unique_users).
+    daily_messages_map = {date: count for count, date in messages_data}
+    daily_unique_users_map = {date: count for count, date in unique_users_data}
+    all_dates = set(daily_messages_map.keys()) | set(daily_unique_users_map.keys())
+
+    # Merge both sets of metrics by date
+    results: list[AssistantDailyUsageResponse] = []
+    for date in sorted(all_dates):
+        results.append(
+            AssistantDailyUsageResponse(
+                date=date,
+                total_messages=daily_messages_map.get(date, 0),
+                total_unique_users=daily_unique_users_map.get(date, 0),
+            )
+        )
+
+    return results
