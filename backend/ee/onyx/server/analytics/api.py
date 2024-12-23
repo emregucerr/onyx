@@ -209,7 +209,9 @@ class AssistantDailyUsageResponse(BaseModel):
     total_unique_users: int
 
 
-def user_owns_assistant(db_session: Session, user: User, assistant_id: int) -> bool:
+def user_owns_assistant(
+    db_session: Session, user: User | None, assistant_id: int
+) -> bool:
     """
     Check if the given user owns the assistant with the given ID.
 
@@ -221,6 +223,8 @@ def user_owns_assistant(db_session: Session, user: User, assistant_id: int) -> b
     assistant = db_session.query(Persona).filter(Persona.id == assistant_id).first()
     if not assistant:
         return False
+    if not user:
+        return False
     return assistant.user_id == user.id
 
 
@@ -229,7 +233,7 @@ def get_assistant_stats(
     assistant_id: int,
     start: datetime.datetime | None = None,
     end: datetime.datetime | None = None,
-    user: User = Depends(current_user),
+    user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> list[AssistantDailyUsageResponse]:
     """

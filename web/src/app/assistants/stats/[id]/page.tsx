@@ -12,10 +12,11 @@ import WrappedAssistantsStats from "./WrappedAssistantsStats";
 export default async function GalleryPage(props: {
   params: Promise<{ id: string }>;
 }) {
+  const params = await props.params;
   noStore();
   const requestCookies = await cookies();
 
-  const data = await fetchChatData(new URLSearchParams());
+  const data = await fetchChatData({});
 
   if ("redirect" in data) {
     redirect(data.redirect);
@@ -58,7 +59,10 @@ export default async function GalleryPage(props: {
       )}
 
       <InstantSSRAutoRefresh />
-      <WrappedAssistantsStats initiallyToggled={toggleSidebar} />
+      <WrappedAssistantsStats
+        initiallyToggled={toggleSidebar}
+        assistantId={parseInt(params.id)}
+      />
     </ChatProvider>
   );
 }
