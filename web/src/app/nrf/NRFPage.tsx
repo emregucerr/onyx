@@ -15,12 +15,7 @@ import { Button } from "@/components/ui/button";
 import { SimplifiedChatInputBar } from "../chat/input/SimplifiedChatInputBar";
 import { Menu } from "lucide-react";
 import { Shortcut } from "./interfaces";
-import {
-  AddShortCut,
-  MaxShortcutsReachedModal,
-  NewShortCutModal,
-  ShortCut,
-} from "./ShortCuts";
+import { MaxShortcutsReachedModal, NewShortCutModal } from "./ShortCuts";
 import { Modal } from "@/components/Modal";
 import Title from "@/components/ui/title";
 import { useNightTime } from "./dateUtils";
