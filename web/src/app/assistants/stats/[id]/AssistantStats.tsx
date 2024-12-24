@@ -10,17 +10,21 @@ import {
   DateRange,
 } from "@/app/ee/admin/performance/DateRangeSelector";
 
-type AssistantDailyUsageResponse = {
+type AssistantDailyUsageEntry = {
   date: string;
   total_messages: number;
   total_unique_users: number;
-  unique_users: string[];
+};
+
+type AssistantStatsResponse = {
+  daily_stats: AssistantDailyUsageEntry[];
+  total_messages: number;
+  total_unique_users: number;
 };
 
 export function AssistantStats({ assistantId }: { assistantId: number }) {
-  const [stats, setStats] = useState<AssistantDailyUsageResponse[] | null>(
-    null
-  );
+  const [assistantStats, setAssistantStats] =
+    useState<AssistantStatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -33,25 +37,22 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
       try {
         setIsLoading(true);
         setError(null);
+
         const res = await fetch(
           `/api/analytics/assistant/${assistantId}/stats?start=${
             dateRange?.from?.toISOString() || ""
-          }&end=${dateRange?.to?.toISOString() || ""}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
+          }&end=${dateRange?.to?.toISOString() || ""}`
         );
+
         if (!res.ok) {
           if (res.status === 403) {
             throw new Error("You don't have permission to view these stats.");
           }
           throw new Error("Failed to fetch assistant stats");
         }
-        const data = await res.json();
-        setStats(data);
+
+        const data = (await res.json()) as AssistantStatsResponse;
+        setAssistantStats(data);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "An unknown error occurred"
@@ -60,48 +61,46 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
         setIsLoading(false);
       }
     }
+
     fetchStats();
   }, [assistantId, dateRange]);
 
   const chartData = useMemo(() => {
-    if (!stats?.length || !dateRange) {
+    if (!assistantStats?.daily_stats?.length || !dateRange) {
       return null;
     }
 
     const initialDate =
       dateRange.from ||
       new Date(
-        Math.min(...stats.map((entry) => new Date(entry.date).getTime()))
+        Math.min(
+          ...assistantStats.daily_stats.map((entry) =>
+            new Date(entry.date).getTime()
+          )
+        )
       );
     const endDate = dateRange.to || new Date();
+
     const dateRangeList = getDatesList(initialDate);
 
-    const statsMap = new Map(stats.map((entry) => [entry.date, entry]));
+    const statsMap = new Map(
+      assistantStats.daily_stats.map((entry) => [entry.date, entry])
+    );
 
     return dateRangeList
       .filter((date) => new Date(date) <= endDate)
       .map((dateStr) => {
-        const data = statsMap.get(dateStr);
+        const dayData = statsMap.get(dateStr);
         return {
           Day: dateStr,
-          Messages: data?.total_messages || 0,
-          "Unique Users": data?.total_unique_users || 0,
+          Messages: dayData?.total_messages || 0,
+          "Unique Users": dayData?.total_unique_users || 0,
         };
       });
-  }, [stats, dateRange]);
+  }, [assistantStats, dateRange]);
 
-  const totalMessages = useMemo(
-    () => stats?.reduce((sum, day) => sum + day.total_messages, 0) || 0,
-    [stats]
-  );
-  const totalUniqueUsers = useMemo(() => {
-    if (!stats) return 0;
-    const uniqueUsersSet = new Set<string>();
-    stats.forEach((day) => {
-      day.unique_users.forEach((userId) => uniqueUsersSet.add(userId));
-    });
-    return uniqueUsersSet.size;
-  }, [stats]);
+  const totalMessages = assistantStats?.total_messages ?? 0;
+  const totalUniqueUsers = assistantStats?.total_unique_users ?? 0;
 
   let content;
   if (isLoading) {
@@ -116,7 +115,7 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
         <p className="m-auto">{error}</p>
       </div>
     );
-  } else if (!stats?.length) {
+  } else if (!assistantStats?.daily_stats?.length) {
     content = (
       <div className="h-80 text-gray-500 flex flex-col">
         <p className="m-auto">
@@ -142,7 +141,9 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
       <Title>Assistant Analytics</Title>
       <div className="flex flex-col gap-4">
         <Text>Messages and unique users per day for this assistant</Text>
+
         <DateRangeSelector value={dateRange} onValueChange={setDateRange} />
+
         <div className="flex justify-between">
           <div>
             <Text className="font-semibold">Total Messages</Text>

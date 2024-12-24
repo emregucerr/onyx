@@ -1,5 +1,6 @@
 import datetime
 from collections import defaultdict
+from typing import List
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -32,11 +33,6 @@ class QueryAnalyticsResponse(BaseModel):
     total_likes: int
     total_dislikes: int
     date: datetime.date
-
-
-class AssistantStatsResponse(BaseModel):
-    total_messages: int
-    total_unique_users: int
 
 
 @router.get("/admin/query")
@@ -210,6 +206,12 @@ class AssistantDailyUsageResponse(BaseModel):
     total_unique_users: int
 
 
+class AssistantStatsResponse(BaseModel):
+    daily_stats: List[AssistantDailyUsageResponse]
+    total_messages: int
+    total_unique_users: int
+
+
 def user_owns_assistant(
     db_session: Session, user: User | None, assistant_id: int
 ) -> bool:
@@ -231,7 +233,7 @@ def get_assistant_stats(
     end: datetime.datetime | None = None,
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
-) -> list[AssistantDailyUsageResponse]:
+) -> AssistantStatsResponse:
     """
     Returns daily message and unique user counts for a user's assistant.
     """
@@ -259,9 +261,9 @@ def get_assistant_stats(
     all_dates = set(daily_messages_map.keys()) | set(daily_unique_users_map.keys())
 
     # Merge both sets of metrics by date
-    results: list[AssistantDailyUsageResponse] = []
+    daily_results: list[AssistantDailyUsageResponse] = []
     for date in sorted(all_dates):
-        results.append(
+        daily_results.append(
             AssistantDailyUsageResponse(
                 date=date,
                 total_messages=daily_messages_map.get(date, 0),
@@ -269,4 +271,11 @@ def get_assistant_stats(
             )
         )
 
-    return results
+    total_msgs = sum(d.total_messages for d in daily_results)
+    total_users = sum(d.total_unique_users for d in daily_results)
+
+    return AssistantStatsResponse(
+        daily_stats=daily_results,
+        total_messages=total_msgs,
+        total_unique_users=total_users,
+    )
