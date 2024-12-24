@@ -185,7 +185,7 @@ export const NewShortCutModal = ({
                     <SelectItem
                       key={color}
                       value={color}
-                      className="text-white hover:bg-neutral-800 cursor-pointer"
+                      className="text-white focus:bg-neutral-950 focus:text-neutral-100  cursor-pointer"
                     >
                       <div className="flex items-center">
                         <div
@@ -243,7 +243,7 @@ export const MaxShortcutsReachedModal = ({
         </DialogHeader>
         <div className="py-4">
           <p className="text-center text-neutral-300">
-            You've reached the maximum limit of 8 shortcuts. To add a new
+            You&apos;ve reached the maximum limit of 8 shortcuts. To add a new
             shortcut, please remove an existing one.
           </p>
         </div>

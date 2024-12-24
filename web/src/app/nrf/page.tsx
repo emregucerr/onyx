@@ -7,6 +7,7 @@ import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { cookies } from "next/headers";
 import { NEXT_PUBLIC_ENABLE_CHROME_EXTENSION } from "@/lib/constants";
 import NRFPage from "./NRFPage";
+import { NRFPreferencesProvider } from "../context/nrf/NRFPreferencesContext";
 
 export default async function Page(props: {
   searchParams: Promise<{ [key: string]: string }>;
@@ -45,24 +46,26 @@ export default async function Page(props: {
       {shouldShowWelcomeModal && (
         <WelcomeModal user={user} requestCookies={requestCookies} />
       )}
-      <ChatProvider
-        value={{
-          chatSessions,
-          availableSources,
-          ccPairs,
-          documentSets,
-          tags,
-          availableDocumentSets: documentSets,
-          availableTags: tags,
-          llmProviders,
-          folders,
-          openedFolders,
-          shouldShowWelcomeModal,
-          defaultAssistantId,
-        }}
-      >
-        <NRFPage />
-      </ChatProvider>
+      <NRFPreferencesProvider>
+        <ChatProvider
+          value={{
+            chatSessions,
+            availableSources,
+            ccPairs,
+            documentSets,
+            tags,
+            availableDocumentSets: documentSets,
+            availableTags: tags,
+            llmProviders,
+            folders,
+            openedFolders,
+            shouldShowWelcomeModal,
+            defaultAssistantId,
+          }}
+        >
+          <NRFPage />
+        </ChatProvider>
+      </NRFPreferencesProvider>
     </div>
   );
 }

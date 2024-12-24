@@ -111,6 +111,7 @@ import AssistantBanner from "../../components/assistants/AssistantBanner";
 import TextView from "@/components/chat_search/TextView";
 import AssistantSelector from "@/components/chat_search/AssistantSelector";
 import { Modal } from "@/components/Modal";
+import { useSendMessageToParent } from "../nrf/utils";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -1841,6 +1842,7 @@ export function ChatPage({
     end: 0,
     mostVisibleMessageId: null,
   };
+  useSendMessageToParent();
 
   useEffect(() => {
     if (noAssistants) {
