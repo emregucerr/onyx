@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from ee.onyx.db.analytics import fetch_assistant_message_analytics
 from ee.onyx.db.analytics import fetch_assistant_unique_users
+from ee.onyx.db.analytics import fetch_assistant_unique_users_total
 from ee.onyx.db.analytics import fetch_onyxbot_analytics
 from ee.onyx.db.analytics import fetch_per_user_query_analytics
 from ee.onyx.db.analytics import fetch_persona_message_analytics
@@ -235,7 +236,8 @@ def get_assistant_stats(
     db_session: Session = Depends(get_session),
 ) -> AssistantStatsResponse:
     """
-    Returns daily message and unique user counts for a user's assistant.
+    Returns daily message and unique user counts for a user's assistant,
+    along with the overall total messages and total distinct users.
     """
     start = start or (
         datetime.datetime.utcnow() - datetime.timedelta(days=_DEFAULT_LOOKBACK_DAYS)
@@ -271,8 +273,11 @@ def get_assistant_stats(
             )
         )
 
+    # Now pull a single total distinct user count across the entire time range
     total_msgs = sum(d.total_messages for d in daily_results)
-    total_users = sum(d.total_unique_users for d in daily_results)
+    total_users = fetch_assistant_unique_users_total(
+        db_session, assistant_id, start, end
+    )
 
     return AssistantStatsResponse(
         daily_stats=daily_results,

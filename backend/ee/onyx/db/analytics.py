@@ -302,3 +302,34 @@ def fetch_assistant_unique_users(
     )
 
     return [tuple(row) for row in db_session.execute(query).all()]
+
+
+def fetch_assistant_unique_users_total(
+    db_session: Session,
+    assistant_id: int,
+    start: datetime.datetime,
+    end: datetime.datetime,
+) -> int:
+    """
+    Gets the total number of distinct users who have sent or received messages from
+    the specified assistant in the given time range.
+    """
+    query = (
+        select(func.count(func.distinct(ChatSession.user_id)))
+        .join(
+            ChatSession,
+            ChatMessage.chat_session_id == ChatSession.id,
+        )
+        .where(
+            or_(
+                ChatMessage.alternate_assistant_id == assistant_id,
+                ChatSession.persona_id == assistant_id,
+            ),
+            ChatMessage.time_sent >= start,
+            ChatMessage.time_sent <= end,
+            ChatMessage.message_type == MessageType.ASSISTANT,
+        )
+    )
+
+    result = db_session.execute(query).scalar()
+    return result if result else 0
