@@ -13,8 +13,11 @@ const cspHeader = `
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-
-    ${process.env.NEXT_PUBLIC_CLOUD_ENABLED === "true" ? "upgrade-insecure-requests;" : ""}
+    ${
+      process.env.NEXT_PUBLIC_CLOUD_ENABLED === "true"
+        ? "upgrade-insecure-requests;"
+        : ""
+    }
 `;
 
 /** @type {import('next').NextConfig} */

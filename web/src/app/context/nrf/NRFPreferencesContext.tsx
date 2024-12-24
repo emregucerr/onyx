@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import { Shortcut } from "../../nrf/interfaces";
+import { darkImages, lightImages, Shortcut } from "../../nrf/interfaces";
 
 interface NRFPreferencesContextValue {
   theme: string;
@@ -51,9 +51,9 @@ export function NRFPreferencesProvider({
 }) {
   const [theme, setTheme] = useLocalStorageState<string>("onyxTheme", "dark");
   const [defaultLightBackgroundUrl, setDefaultLightBackgroundUrl] =
-    useLocalStorageState<string>("lightBgUrl", "");
+    useLocalStorageState<string>("lightBgUrl", lightImages[0]);
   const [defaultDarkBackgroundUrl, setDefaultDarkBackgroundUrl] =
-    useLocalStorageState<string>("darkBgUrl", "");
+    useLocalStorageState<string>("darkBgUrl", darkImages[0]);
   const [shortcuts, setShortcuts] = useLocalStorageState<Shortcut[]>(
     "shortCuts",
     []
