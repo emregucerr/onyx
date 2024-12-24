@@ -120,6 +120,7 @@ function AssistantListItem({
 
   const isEnterpriseEnabled = usePaidEnterpriseFeaturesEnabled();
   const isOwnedByUser = checkUserOwnsAssistant(user, assistant);
+  const { isAdmin } = useUser();
 
   return (
     <>
@@ -247,7 +248,7 @@ function AssistantListItem({
                   </button>
                 ),
 
-                isOwnedByUser && isEnterpriseEnabled ? (
+                (isOwnedByUser || isAdmin) && isEnterpriseEnabled ? (
                   <button
                     key="view-stats"
                     className="flex items-center gap-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left"
