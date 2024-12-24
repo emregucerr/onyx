@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ee.onyx.db.analytics import fetch_assistant_message_analytics
@@ -21,7 +22,7 @@ from onyx.auth.users import current_user
 from onyx.db.engine import get_session
 from onyx.db.models import Persona
 from onyx.db.models import User
-from onyx.db.models import UserRole
+from onyx.db.persona import _add_user_filters as _add_persona_user_filters
 
 router = APIRouter(prefix="/analytics")
 
@@ -213,18 +214,14 @@ class AssistantStatsResponse(BaseModel):
     total_unique_users: int
 
 
-def user_owns_assistant(
+def user_can_view_assistant_stats(
     db_session: Session, user: User | None, assistant_id: int
 ) -> bool:
-    # If user is None, assume the user is an admin or auth is disabled
-    if not user or user.role == UserRole.ADMIN:
-        return True
-
-    assistant = db_session.query(Persona).filter(Persona.id == assistant_id).first()
-    if not assistant:
-        return False
-
-    return assistant.user_id == user.id
+    # Using the same logic as other user filters
+    stmt = select(Persona).where(Persona.id == assistant_id)
+    stmt = _add_persona_user_filters(stmt, user)
+    persona = db_session.execute(stmt).scalar_one_or_none()
+    return persona is not None
 
 
 @router.get("/assistant/{assistant_id}/stats")
@@ -244,7 +241,7 @@ def get_assistant_stats(
     )
     end = end or datetime.datetime.utcnow()
 
-    if not user_owns_assistant(db_session, user, assistant_id):
+    if not user_can_view_assistant_stats(db_session, user, assistant_id):
         raise HTTPException(
             status_code=403, detail="Not allowed to access this assistant's stats."
         )
