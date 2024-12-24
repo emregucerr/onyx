@@ -9,6 +9,8 @@ import {
   DateRangeSelector,
   DateRange,
 } from "@/app/ee/admin/performance/DateRangeSelector";
+import { useAssistants } from "@/components/context/AssistantsContext";
+import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
 type AssistantDailyUsageEntry = {
   date: string;
@@ -25,12 +27,17 @@ type AssistantStatsResponse = {
 export function AssistantStats({ assistantId }: { assistantId: number }) {
   const [assistantStats, setAssistantStats] =
     useState<AssistantStatsResponse | null>(null);
+  const { assistants } = useAssistants();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
+
+  const memoizedAssistant = useMemo(() => {
+    return assistants.find((a) => a.id === assistantId);
+  }, [assistants, assistantId]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -138,12 +145,30 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
 
   return (
     <CardSection className="mt-8">
-      <Title>Assistant Analytics</Title>
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col gap-2">
+          <Title>Assistant Analytics</Title>
+          <Text>
+            Messages and unique users per day for the assistant{" "}
+            <b>{memoizedAssistant?.name}</b>
+          </Text>
+          <DateRangeSelector value={dateRange} onValueChange={setDateRange} />
+        </div>
+        <div className="bg-gray-100 p-4 rounded-lg shadow-sm">
+          <div className="flex items-center mb-2">
+            <AssistantIcon
+              disableToolip
+              size="medium"
+              assistant={memoizedAssistant}
+            />
+            <Title className="text-lg ml-3">{memoizedAssistant?.name}</Title>
+          </div>
+          <Text className="text-gray-600 text-sm">
+            {memoizedAssistant?.description}
+          </Text>
+        </div>
+      </div>
       <div className="flex flex-col gap-4">
-        <Text>Messages and unique users per day for this assistant</Text>
-
-        <DateRangeSelector value={dateRange} onValueChange={setDateRange} />
-
         <div className="flex justify-between">
           <div>
             <Text className="font-semibold">Total Messages</Text>

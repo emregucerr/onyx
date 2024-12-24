@@ -14,6 +14,9 @@ from onyx.configs.constants import MessageType
 from onyx.db.models import ChatMessage
 from onyx.db.models import ChatMessageFeedback
 from onyx.db.models import ChatSession
+from onyx.db.models import Persona
+from onyx.db.models import User
+from onyx.db.persona import _add_user_filters as _add_persona_user_filters
 
 
 def fetch_query_analytics(
@@ -334,3 +337,13 @@ def fetch_assistant_unique_users_total(
 
     result = db_session.execute(query).scalar()
     return result if result else 0
+
+
+def user_can_view_assistant_stats(
+    db_session: Session, user: User | None, assistant_id: int
+) -> bool:
+    # Using the same logic as other user filters
+    stmt = select(Persona).where(Persona.id == assistant_id)
+    stmt = _add_persona_user_filters(stmt, user)
+    persona = db_session.execute(stmt).scalar_one_or_none()
+    return persona is not None

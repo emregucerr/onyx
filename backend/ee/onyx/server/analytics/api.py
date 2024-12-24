@@ -6,7 +6,6 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ee.onyx.db.analytics import fetch_assistant_message_analytics
@@ -17,12 +16,11 @@ from ee.onyx.db.analytics import fetch_per_user_query_analytics
 from ee.onyx.db.analytics import fetch_persona_message_analytics
 from ee.onyx.db.analytics import fetch_persona_unique_users
 from ee.onyx.db.analytics import fetch_query_analytics
+from ee.onyx.db.analytics import user_can_view_assistant_stats
 from onyx.auth.users import current_admin_user
 from onyx.auth.users import current_user
 from onyx.db.engine import get_session
-from onyx.db.models import Persona
 from onyx.db.models import User
-from onyx.db.persona import _add_user_filters as _add_persona_user_filters
 
 router = APIRouter(prefix="/analytics")
 
@@ -212,16 +210,6 @@ class AssistantStatsResponse(BaseModel):
     daily_stats: List[AssistantDailyUsageResponse]
     total_messages: int
     total_unique_users: int
-
-
-def user_can_view_assistant_stats(
-    db_session: Session, user: User | None, assistant_id: int
-) -> bool:
-    # Using the same logic as other user filters
-    stmt = select(Persona).where(Persona.id == assistant_id)
-    stmt = _add_persona_user_filters(stmt, user)
-    persona = db_session.execute(stmt).scalar_one_or_none()
-    return persona is not None
 
 
 @router.get("/assistant/{assistant_id}/stats")

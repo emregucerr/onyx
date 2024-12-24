@@ -1,5 +1,5 @@
 "use client";
-import SidebarWrapper from "../../SidebarWrapper";
+import SidebarWrapper from "../../../../assistants/SidebarWrapper";
 import { AssistantStats } from "./AssistantStats";
 
 export default function WrappedAssistantsStats({
