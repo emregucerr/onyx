@@ -316,6 +316,7 @@ def fetch_assistant_unique_users_total(
     """
     query = (
         select(func.count(func.distinct(ChatSession.user_id)))
+        .select_from(ChatMessage)
         .join(
             ChatSession,
             ChatMessage.chat_session_id == ChatSession.id,
