@@ -1985,6 +1985,9 @@ export function ChatPage({
       });
     };
   }
+  if (!user) {
+    redirect("/auth/login");
+  }
 
   if (noAssistants)
     return (
