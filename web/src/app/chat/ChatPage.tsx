@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
 import {
   BackendChatSession,
   BackendMessage,
@@ -1985,6 +1985,7 @@ export function ChatPage({
       });
     };
   }
+
   if (noAssistants)
     return (
       <>
